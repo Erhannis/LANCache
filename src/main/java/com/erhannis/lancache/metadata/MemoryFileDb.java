@@ -14,10 +14,26 @@ import java.util.HashMap;
 public class MemoryFileDb extends FileDb {
     public HashMap<String, CNode> nodes = new HashMap<>();
     
-    //NEXT wait, what abt files in the root dir
+    //THINK Also createRoot?
+    public CNode getRoot() {
+        return nodes.get("/"); //SHAME Probably works, but ugh
+    }
     
     @Override
     public CNode getNodeById(String id) {
         return nodes.get(id);
+    }
+    
+    /**
+     * This should probably only be used for the root dir
+     * @param node 
+     */
+    public void addOrphanNode(CNode node) {
+        nodes.put(node.id, node);
+    }
+    
+    public void addNode(CDir parent, CNode child) {
+        parent.nodes.add(child);
+        nodes.put(child.id, child);
     }
 }

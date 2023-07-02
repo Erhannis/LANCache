@@ -15,6 +15,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -23,12 +27,16 @@ import java.nio.file.attribute.BasicFileAttributes;
 public class FileMapper {
 
     private final Path cacheDir;
-    private final FileDb db;
+    private final MemoryFileDb db; //DUMMY Abstract di
 
     public FileMapper(Path dataDir) {
         this.cacheDir = dataDir.resolve("cache");
         MemoryFileDb mfdb = new MemoryFileDb();
         //DUMMY //NEXT Load with dummy data or something
+        CDir root = new CDir();
+        root.id = "/";
+        root.filename = "/";
+        mfdb.addOrphanNode(root);
         this.db = mfdb;
     }
     
@@ -37,7 +45,30 @@ public class FileMapper {
      * @param virtual
      * @return 
      */
-    public abstract String virtualPathToId(String virtualPath);
+    public String virtualPathToId(String virtualPath) {
+        /*
+        Heck, wait, I've found a disjunction.
+        Do I...have to parse the path in order to get a node?
+        Bleh.
+        */
+        // On both windows and linux, the path shows up split by /
+        List<String> parts = Arrays.asList(virtualPath.split("/"));
+        CNode n = (CNode)db.getRoot();
+        partsLoop: while (!parts.isEmpty()) {
+            String s = parts.remove(0);
+            if (s.isEmpty()) {
+                continue;
+            }
+            for (CNode sn : ((CDir)n).nodes) {
+                if (s.equals(sn.filename)) {
+                    n = sn;
+                    continue partsLoop;
+                }
+            }
+            return null; //DUMMY Sketchy
+        }
+        return n.id;
+    }
     
     /**
      * Get file attributes.  If file doesn't exist, return null.
@@ -56,7 +87,12 @@ public class FileMapper {
             return attrs;
         } else if (n instanceof CDir) {
             SimpleFileAttributes att = new SimpleFileAttributes();
-            asdf;
+            att.size = 0; //DUMMY ???
+            att.isDirectory = true;
+            att.lastAccessTime = FileTime.fromMillis(0); //DUMMY
+            att.creationTime = FileTime.fromMillis(0); //DUMMY
+            att.lastModifiedTime = FileTime.fromMillis(0); //DUMMY
+            return att;
         } else {
             throw new RuntimeException("Unhandled file class! "+n.getClass());
         }
