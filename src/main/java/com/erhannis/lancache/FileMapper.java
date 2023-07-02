@@ -32,11 +32,22 @@ public class FileMapper {
     public FileMapper(Path dataDir) {
         this.cacheDir = dataDir.resolve("cache");
         MemoryFileDb mfdb = new MemoryFileDb();
-        //DUMMY //NEXT Load with dummy data or something
+        
+        //DUMMY Load with dummy data or something
+        
+        CFile f;
+        
         CDir root = new CDir();
         root.id = "/";
         root.filename = "/";
         mfdb.addOrphanNode(root);
+        
+        // 1679415240.vetkar_anyu34_0.png b53b0f17f7c97f8fb9d6b91613075b79a33fd4f849a636a766a4ae8de2020de1
+        f = new CFile();
+        f.id = "b53b0f17f7c97f8fb9d6b91613075b79a33fd4f849a636a766a4ae8de2020de1";
+        f.filename = "1679415240.vetkar_anyu34_0.png";
+        mfdb.addNode(root, f);
+        
         this.db = mfdb;
     }
     
@@ -52,7 +63,7 @@ public class FileMapper {
         Bleh.
         */
         // On both windows and linux, the path shows up split by /
-        List<String> parts = Arrays.asList(virtualPath.split("/"));
+        List<String> parts = new ArrayList<>(Arrays.asList(virtualPath.split("/")));
         CNode n = (CNode)db.getRoot();
         partsLoop: while (!parts.isEmpty()) {
             String s = parts.remove(0);
