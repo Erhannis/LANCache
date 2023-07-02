@@ -5,6 +5,8 @@
  */
 package com.erhannis.lancache;
 
+import com.erhannis.lancache.metadata.CDir;
+import com.erhannis.lancache.metadata.CNode;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -28,23 +30,21 @@ import ru.serce.jnrfuse.struct.FuseFileInfo;
  * @author Erhannis
  */
 public class LANCacheFS extends FuseStubFS {
+    public FileMapper fm;
 
-    private final Path root;
-
-    public LANCacheFS(Path root) {
-        this.root = root;
+    public LANCacheFS(Path dataDir) {
+        this.fm = new FileMapper(dataDir);
     }
-
+    
     @Override
     public int getattr(String path, FileStat stat) {
         //System.out.println("getattr "+path+" : "+stat);
-        Path p = Paths.get(root.toString(), path);
-        if (!Files.exists(p)) {
-            return -ErrorCodes.ENOENT();
-        }
-
+        //DUMMY //CHECK Reduce path to canonical?
         try {
-            BasicFileAttributes attrs = Files.readAttributes(p, BasicFileAttributes.class);
+            BasicFileAttributes attrs = fm.virtualPathToAttrs(path);
+            if (attrs == null) {
+                return -ErrorCodes.ENOENT();
+            }
             stat.st_mode.set(0444 | 0222 | 0111 | (attrs.isDirectory() ? FileStat.S_IFDIR : FileStat.S_IFREG));
             stat.st_nlink.set(attrs.isDirectory() ? (short) 2 : (short) 1);
             stat.st_uid.set(getContext().uid.get());
@@ -64,14 +64,10 @@ public class LANCacheFS extends FuseStubFS {
 
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filler, @off_t long offset, FuseFileInfo fi) {
-        Path p = Paths.get(root.toString(), path);
+        CDir dir = (CDir)fm.getNodeById(path);
 
-        try (DirectoryStream<Path> ds = Files.newDirectoryStream(p)) {
-            for (Path subPath : ds) {
-                filler.apply(buf, subPath.getFileName().toString(), null, 0);
-            }
-        } catch (IOException e) {
-            return -ErrorCodes.EIO();
+        for (CNode n : dir.nodes) {
+            filler.apply(buf, n.filename, null, 0);
         }
         return 0;
     }
@@ -79,7 +75,11 @@ public class LANCacheFS extends FuseStubFS {
     @Override
     public int read(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
         System.out.println("read " + path + " @" + offset + ":x" + size);
-        Path p = Paths.get(root.toString(), path);
+        if (fm.isDirectory(path)) {
+            return -ErrorCodes.EISDIR();
+        }
+        
+        Path p = fm.virtualFilePathToRealFilePath(path);
 
         if (!Files.isRegularFile(p)) {
             System.out.println("err isdir");
@@ -115,8 +115,13 @@ public class LANCacheFS extends FuseStubFS {
 
     @Override
     public int open(String path, FuseFileInfo fi) {
-        Path p = Paths.get(root.toString(), path);
+        if (fm.isDirectory(path)) {
+            return -ErrorCodes.EISDIR();
+        }
+        
+        Path p = fm.virtualFilePathToRealFilePath(path);
 
+        // Could maybe be a weird filetype, or a corrupted cache //THINK Log?
         if (!Files.isRegularFile(p)) {
             return -ErrorCodes.EISDIR();
         }

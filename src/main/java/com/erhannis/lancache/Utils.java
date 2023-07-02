@@ -17,16 +17,14 @@ import java.security.MessageDigest;
  * @author Erhannis
  */
 public class Utils {
-    public static String calculateSHA256(Path file, int size) throws Exception {
+    private static final int BUF = 1024*256; // Did a few tests, this one was best by a small margin
+    
+    public static String calculateSHA256(Path file) throws Exception {
         MessageDigest sha256Digest = MessageDigest.getInstance("SHA-256");
         try (InputStream is = Files.newInputStream(file)) {
             try (DigestInputStream dis = new DigestInputStream(is, sha256Digest)) {
-                if (size != 1) {
-                    byte[] buffer = new byte[size];
-                    while (dis.read(buffer, 0, buffer.length) != -1) ; //empty loop to clear the data //LEAK //THINK Is this slow?                
-                } else {
-                    while (dis.read() != -1) ; //empty loop to clear the data //LEAK //THINK Is this slow?
-                }
+                byte[] buffer = new byte[BUF];
+                while (dis.read(buffer, 0, buffer.length) != -1); //empty loop to clear the data
                 sha256Digest = dis.getMessageDigest();
             }
         }
