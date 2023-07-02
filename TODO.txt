@@ -1,0 +1,52 @@
+first draft
+  semi-manual write
+  automatic read
+
+chunks??
+  feels like files should be kept together; don't want partial file errors
+  otoh, streaming could mean chunks are useful, so you don't have to copy the entire file before reading a segment
+    but maybe a thing we design to allow, but defer actually doing
+
+record:
+  dirs
+    dirs
+    hashes
+  hash
+    true file (path to cache) ...or, just let the system find it, probably
+    or?
+    who has it
+      streaming?
+
+registry
+  nodes
+    //DUMMY start with explicit list, but maybe eventually autodiscovery
+    keep file list in sync among all of them
+      deconflict changes?
+  virtual tree
+    dir
+      name
+      [
+        | dir
+        | file
+      ]
+    file
+      name
+      hash
+
+create
+  (storage limits?)
+  add file locally
+  register with network (trigger distro)
+
+read
+
+update
+  (storage limits?)
+  ????
+
+distro
+  ensure:
+    for each file f (//THINK by path or hash?  ie, what of unlisted files?) 
+      f is present on at least N active nodes
+    if not, copy it to remote
+      //THINK deconflict with storage limits
