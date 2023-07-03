@@ -38,7 +38,9 @@ public class LANCacheFS extends FuseStubFS {
     
     @Override
     public int getattr(String path, FileStat stat) {
+        try {
         //System.out.println("getattr "+path+" : "+stat);
+        System.out.println("getattr "+path);
         //DUMMY //CHECK Reduce path to canonical?
         try {
             BasicFileAttributes attrs = fm.virtualPathToAttrs(path);
@@ -57,23 +59,39 @@ public class LANCacheFS extends FuseStubFS {
             stat.st_mtim.tv_sec.set(attrs.lastModifiedTime().to(TimeUnit.SECONDS));
             stat.st_ctim.tv_sec.set(attrs.creationTime().to(TimeUnit.SECONDS));
         } catch (IOException e) {
+            System.err.println("ERR0");
+            e.printStackTrace();
             return -ErrorCodes.EIO();
         }
         return 0;
+        } catch (Throwable t) {
+            System.err.println("ERR");
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }
     }
 
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filler, @off_t long offset, FuseFileInfo fi) {
+        try {
+        System.out.println("readdir "+path);
         CDir dir = (CDir)fm.getNodeById(path);
 
         for (CNode n : dir.nodes) {
+            System.out.println("readdir=> "+n.filename);
             filler.apply(buf, n.filename, null, 0);
         }
         return 0;
+        } catch (Throwable t) {
+            System.err.println("ERR");
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }
     }
 
     @Override
     public int read(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
+        try {
         System.out.println("read " + path + " @" + offset + ":x" + size);
         if (fm.isDirectory(path)) {
             return -ErrorCodes.EISDIR();
@@ -111,10 +129,16 @@ public class LANCacheFS extends FuseStubFS {
             t.printStackTrace();
             return -ErrorCodes.EIO();
         }
+        } catch (Throwable t) {
+            System.err.println("ERR");
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }        
     }
 
     @Override
     public int open(String path, FuseFileInfo fi) {
+        try {
         if (fm.isDirectory(path)) {
             return -ErrorCodes.EISDIR();
         }
@@ -131,6 +155,11 @@ public class LANCacheFS extends FuseStubFS {
         }
 
         return 0;
+        } catch (Throwable t) {
+            System.err.println("ERR");
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }        
     }
 
     @Override

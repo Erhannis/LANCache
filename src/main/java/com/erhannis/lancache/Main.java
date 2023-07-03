@@ -26,7 +26,7 @@ public class Main {
 
             //DUMMY
             //args = new String[]{"/home/erhannis/tmp/mnt", "/home/erhannis/Downloads/funny"};
-            args = new String[]{"M:\\", "D:\\Installations\\Celestia"};
+            args = new String[]{"M:\\", "G:\\lancache_data"};
         }
 
         try {
