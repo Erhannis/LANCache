@@ -11,6 +11,7 @@ import com.erhannis.lancache.metadata.CFile;
 import com.erhannis.lancache.metadata.CNode;
 import com.erhannis.lancache.metadata.MemoryFileDb;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,6 +20,9 @@ import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import jdk.internal.joptsimple.internal.Strings;
 
 /**
  *
@@ -31,24 +35,55 @@ public class FileMapper {
 
     public FileMapper(Path dataDir) {
         this.cacheDir = dataDir.resolve("cache");
-        MemoryFileDb mfdb = new MemoryFileDb();
-        
-        //DUMMY Load with dummy data or something
-        
-        CFile f;
-        
-        CDir root = new CDir();
-        root.id = "/";
-        root.filename = "/";
-        mfdb.addOrphanNode(root);
-        
-        // 1679415240.vetkar_anyu34_0.png b53b0f17f7c97f8fb9d6b91613075b79a33fd4f849a636a766a4ae8de2020de1
-        f = new CFile();
-        f.id = "b53b0f17f7c97f8fb9d6b91613075b79a33fd4f849a636a766a4ae8de2020de1";
-        f.filename = "1679415240.vetkar_anyu34_0.png";
-        mfdb.addNode(root, f);
-        
+        MemoryFileDb mfdb = new MemoryFileDb(); //THINK Pass in as param?
         this.db = mfdb;
+    }
+    
+    public void addEmptyDirectory(String virtualParentPath, String filename) {
+        String parentId = virtualPathToId(virtualParentPath);
+        CDir parent = (CDir)db.getNodeById(parentId);
+        CDir child = new CDir();
+        child.filename = filename;
+        //DUMMY Check duplicates
+        db.addNode(parent, child);
+    }
+    
+    //THINK `File` instead?  Any number of alternatives?
+    /**
+     * virtualPath includes the filename.
+     * @param externalFilePath
+     * @param virtualPath
+     * @throws Exception 
+     */
+    public void addExternalFile(Path externalFilePath, String virtualPath) throws Exception {
+        String hash = Utils.calculateSHA256(externalFilePath);
+        Path targetCacheFile = cacheDir.resolve(hash);
+        String[] vps = virtualPath.split("/");
+        String parentId = this.virtualPathToId(vps[vps.length-2]);
+        CDir parent = (CDir)db.getNodeById(parentId);
+        CFile file = new CFile();
+        file.id = hash;
+        file.filename = vps[vps.length-1]; //DUMMY //NEXT Is this "/filename" or "filename"?
+        if (!Files.exists(targetCacheFile)) {
+            Files.copy(externalFilePath, targetCacheFile);
+        }
+        db.addNode(parent, file);
+    }
+    
+    //CHECK Test
+    public void checkConsistency() throws IOException {
+        ArrayList<String> fails = new ArrayList<>();
+        for (Path f : Files.list(cacheDir).collect(Collectors.toList())) {
+            String hash = Utils.calculateSHA256(f);
+            String filename = f.getFileName().toString();
+            if (!Objects.equals(hash, f.getFileName().toString())) {
+                fails.add(hash);
+            }
+        }
+        if (!fails.isEmpty()) {
+            String err = "Files failed hash check:\n"+Strings.join(fails, "\n");
+            throw new RuntimeException(err);
+        }
     }
     
     /**

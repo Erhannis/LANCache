@@ -6,6 +6,7 @@
 package com.erhannis.lancache.metadata;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  *
@@ -13,6 +14,19 @@ import java.util.HashMap;
  */
 public class MemoryFileDb extends FileDb {
     public HashMap<String, CNode> nodes = new HashMap<>();
+    
+    public MemoryFileDb() {
+        this(true);
+    }
+    
+    public MemoryFileDb(boolean addRoot) {
+        if (addRoot) {
+            CDir root = new CDir();
+            root.id = "/";
+            root.filename = "/";
+            addOrphanNode(root);
+        }
+    }
     
     //THINK Also createRoot?
     public CNode getRoot() {
@@ -33,6 +47,9 @@ public class MemoryFileDb extends FileDb {
     }
     
     public void addNode(CDir parent, CNode child) {
+        if (parent.nodes.stream().anyMatch((n) -> Objects.equals(n.id, child.id))) {
+            throw new IllegalArgumentException("Duplicate filename!"); //CHECK Permit overwrite?
+        }
         parent.nodes.add(child);
         nodes.put(child.id, child);
     }

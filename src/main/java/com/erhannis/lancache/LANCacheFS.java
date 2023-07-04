@@ -32,8 +32,12 @@ import ru.serce.jnrfuse.struct.FuseFileInfo;
 public class LANCacheFS extends FuseStubFS {
     public FileMapper fm;
 
+    public LANCacheFS(FileMapper fileMapper) {
+        this.fm = fileMapper;
+    }
+
     public LANCacheFS(Path dataDir) {
-        this.fm = new FileMapper(dataDir);
+        this(new FileMapper(dataDir));
     }
     
     @Override
